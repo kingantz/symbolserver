@@ -8,7 +8,7 @@ use std::io::BufReader;
 use num_cpus;
 use serde_yaml;
 use url::Url;
-use rusoto::Region;
+use rusoto_core::Region;
 use chrono::Duration;
 use log::LogLevelFilter;
 
@@ -18,6 +18,7 @@ use super::utils::{is_docker, IgnorePatterns};
 
 #[derive(Deserialize, Debug, Default, Clone)]
 struct AwsConfig {
+    endpoint: Option<String>,
     access_key: Option<String>,
     secret_key: Option<String>,
     bucket_url: Option<String>,
@@ -71,7 +72,7 @@ impl Config {
 
     /// Loads a config from the default location
     pub fn load_default() -> Result<Config> {
-        let mut home = match env::home_dir() {
+        let mut home = match dirs::home_dir() {
             Some(home) => home,
             None => { return Ok(Default::default()) },
         };
@@ -92,6 +93,11 @@ impl Config {
     /// Return the AWS secret key
     pub fn get_aws_secret_key<'a>(&'a self) -> Option<&str> {
         self.aws.secret_key.as_ref().map(|x| &**x)
+    }
+
+    /// Return the Endpoint (about. Minio, ...)
+    pub fn get_aws_endpoint<'a>(&'a self) -> Option<&str> {
+        self.aws.endpoint.as_ref().map(|x| &**x)
     }
 
     /// Return the AWS S3 bucket URL

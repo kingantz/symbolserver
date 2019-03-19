@@ -127,7 +127,7 @@ fn config_from_matches(matches: &ArgMatches) -> Result<Config> {
 
 fn get_default_sdks() -> Result<Vec<PathBuf>> {
     let mut rv = vec![];
-    let path = env::home_dir().ok_or_else(|| {
+    let path = dirs::home_dir().ok_or_else(|| {
         Error::from("Could not find home folder")
     })?.join("Library/Developer/Xcode/iOS DeviceSupport");
     for entry_rv in fs::read_dir(path).chain_err(

@@ -51,7 +51,6 @@ pub struct IndexedUuid {
 
 /// A symbol in the index
 #[repr(C, packed)]
-#[derive(Debug)]
 pub struct IndexItem {
     addr_low: u32,
     addr_high: u16,
