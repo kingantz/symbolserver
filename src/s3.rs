@@ -4,11 +4,12 @@ use std::result::Result as StdResult;
 use std::env;
 use std::io::{Read, Cursor};
 
-use rusoto::{ProvideAwsCredentials, AwsCredentials, CredentialsError,
-             ChainProvider};
-use rusoto::s3::{S3Client, ListObjectsRequest, GetObjectRequest, Object,
-                 ListObjectsError};
-use chrono::{Duration, UTC};
+use rusoto_core::Region;
+use rusoto_core::credential::{ProvideAwsCredentials, AwsCredentials, CredentialsError, ChainProvider};
+use rusoto_s3::{S3, S3Client, ListObjectsRequest, GetObjectRequest, Object, ListObjectsError};
+
+use chrono::Utc;
+use time::Duration;
 use hyper::client::{Client as HyperClient, ProxyConfig};
 use hyper::client::RedirectPolicy;
 use hyper::net::{HttpConnector, HttpsConnector};
@@ -27,7 +28,7 @@ struct FlexibleCredentialsProvider {
 }
 
 /// Abstracts over S3 operations
-pub struct S3 {
+pub struct S3Server {
     url: Url,
     client: S3Client<FlexibleCredentialsProvider, HyperClient>,
 }
@@ -41,7 +42,7 @@ impl ProvideAwsCredentials for FlexibleCredentialsProvider {
             then {
                 Ok(AwsCredentials::new(access_key.to_string(),
                                        secret_key.to_string(),
-                                       None, UTC::now() + Duration::seconds(3600)))
+                                       None, Utc::now() + Duration::seconds(3600)))
             } else {
                 self.chain_provider.credentials()
             }
@@ -81,11 +82,16 @@ pub fn new_hyper_client() -> Result<HyperClient> {
     Ok(client)
 }
 
-impl S3 {
+impl S3Server {
 
     /// Creates an S3 abstraction from a given config.
-    pub fn from_config(config: &Config) -> Result<S3> {
-        Ok(S3 {
+    pub fn from_config(config: &Config) -> Result<S3Server> {
+        let endpoint = config.get_aws_endpoint().map(|x| x.to_string()).unwrap_or("".to_string());
+        let region = match endpoint.as_str()  {
+            "" => config.get_aws_region()?,
+            _ => Region::Custom { name: "us-east-1".to_owned(), endpoint: endpoint, },
+        };
+        Ok(S3Server {
             url: config.get_aws_bucket_url()?,
             client: S3Client::new(new_hyper_client().chain_err(
                     || "Could not configure TLS layer")?,
@@ -93,7 +99,7 @@ impl S3 {
                 chain_provider: ChainProvider::new(),
                 access_key: config.get_aws_access_key().map(|x| x.to_string()),
                 secret_key: config.get_aws_secret_key().map(|x| x.to_string()),
-            }, config.get_aws_region()?)
+            }, region)
         })
     }
 
@@ -175,6 +181,11 @@ impl S3 {
 
         // XXX: this really should not read into memory but we are currently
         // restricted by rusoto here. https://github.com/rusoto/rusoto/issues/481
-        Ok(Box::new(Cursor::new(out.body.unwrap_or_else(|| vec![]))))
+        // Ok(Box::new(Cursor::new(out.body.unwrap_or_else(|| vec![]))))
+
+        let mut stream = out.body.unwrap();
+        let mut body = Vec::new();
+        stream.read_to_end(&mut body).unwrap();
+        Ok(Box::new(Cursor::new(body)))
     }
 }

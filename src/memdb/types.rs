@@ -7,7 +7,7 @@ use super::super::sdk::SdkInfo;
 
 
 /// The stored memdb file header
-#[repr(C, packed)]
+#[repr(C)]
 #[derive(Default, Copy, Clone)]
 pub struct MemDbHeader {
     pub version: u32,
@@ -51,7 +51,6 @@ pub struct IndexedUuid {
 
 /// A symbol in the index
 #[repr(C, packed)]
-#[derive(Debug)]
 pub struct IndexItem {
     addr_low: u32,
     addr_high: u16,

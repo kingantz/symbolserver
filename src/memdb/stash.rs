@@ -13,16 +13,15 @@ use std::sync::{Arc, RwLock};
 
 use serde_json;
 use xz2::write::XzDecoder;
-use chrono::UTC;
+use chrono::Utc;
 use console::style;
 use indicatif::{ProgressBar, ProgressStyle};
 
 use super::read::MemDb;
 use super::super::config::Config;
 use super::super::sdk::SdkInfo;
-use super::super::s3::S3;
-use super::super::utils::{copy_with_progress, HumanDuration,
-                          IgnorePatterns, Rev};
+use super::super::s3::S3Server as S3;
+use super::super::utils::{copy_with_progress, HumanDuration, IgnorePatterns, Rev};
 use super::super::{Result, ResultExt, ErrorKind};
 
 /// Helper for synching
@@ -232,7 +231,7 @@ impl MemDbStash {
         };
         progress.set_style(ProgressStyle::default_bar()
             .template("{wide_bar} {bytes}/{total_bytes}"));
-        let started = UTC::now();
+        let started = Utc::now();
         println!("{} {}", style("Updating").green(), sdk.info());
         let mut src = self.s3.download_sdk(sdk)?;
         let dst = fs::File::create(self.path.join(sdk.info().memdb_filename()))?;
@@ -240,7 +239,7 @@ impl MemDbStash {
         copy_with_progress(&progress, &mut src, &mut dst)?;
         progress.finish_and_clear();
 
-        let duration = UTC::now() - started;
+        let duration = Utc::now() - started;
         if !options.user_facing {
             info!("updated {} in {}", sdk.info(), HumanDuration(duration));
         }
@@ -333,7 +332,7 @@ impl MemDbStash {
     pub fn sync(&self, options: SyncOptions) -> Result<()> {
         let mut local_state = self.read_local_state()?;
         let remote_state = self.fetch_remote_state()?;
-        let started = UTC::now();
+        let started = Utc::now();
         let mut changed = false;
         let mut to_delete : HashSet<_> = HashSet::from_iter(
             local_state.sdks().map(|x| x.info().clone()));
@@ -384,7 +383,7 @@ impl MemDbStash {
             }
         }
 
-        let duration = UTC::now() - started;
+        let duration = Utc::now() - started;
         if options.user_facing {
             println!("Sync done in {}", HumanDuration(duration));
         } else if changed {
