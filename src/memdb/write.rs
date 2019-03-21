@@ -237,7 +237,7 @@ impl<W: Write + Seek> MemDbBuilder<W> {
             slices.push(StoredSlice::new(offset, self.tell()? - offset, false));
         }
         pb.finish_and_clear();
-        self.write_slices(&slices[..], &mut {header.variants_start}, &mut {header.variants_count})?;
+        self.write_slices(&slices[..], &mut header.variants_start, &mut header.variants_count)?;
 
         // next write out the UUIDs.  Since these are fixed length we do not
         // need to use slices here.
@@ -259,14 +259,14 @@ impl<W: Write + Seek> MemDbBuilder<W> {
 
         // now write out all the object name sources
         let slices = self.make_string_slices(&self.object_names[..], true)?;
-        self.write_slices(&slices[..], &mut {header.object_names_start}, &mut {header.object_names_count})?;
+        self.write_slices(&slices[..], &mut header.object_names_start, &mut header.object_names_count)?;
 
         println!("{} Writing symbol strings", format_step(3, &self.options));
 
         // now write out all the symbols
         let slices = self.make_string_slices(&self.symbols[..], true)?;
         println!("{} Writing symbol index", format_step(4, &self.options));
-        self.write_slices(&slices[..], &mut {header.symbols_start}, &mut {header.symbols_count})?;
+        self.write_slices(&slices[..], &mut header.symbols_start, &mut header.symbols_count)?;
 
         println!("{} Writing headers", format_step(5, &self.options));
 

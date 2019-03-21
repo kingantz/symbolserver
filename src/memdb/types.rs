@@ -7,7 +7,7 @@ use super::super::sdk::SdkInfo;
 
 
 /// The stored memdb file header
-#[repr(C, packed)]
+#[repr(C)]
 #[derive(Default, Copy, Clone)]
 pub struct MemDbHeader {
     pub version: u32,
